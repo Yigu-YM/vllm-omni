@@ -14,6 +14,7 @@ Shared by Qwen3-Omni and Qwen3-TTS talker models.
 from __future__ import annotations
 
 import dataclasses
+import os
 from collections.abc import Iterable, Sequence
 
 import torch
@@ -509,6 +510,11 @@ class CodePredictorWrapper(nn.Module):
         self._codec_embeds_list: list[nn.Module] | None = None
         self._device_graphs: dict[int | tuple[int, int], tuple] = {}  # (graph, static_output) per bucket
         prefix_graph_cfg = self._stage_connector_extra_config(vllm_config)
+        compile_setting = os.getenv(
+            "VLLM_OMNI_CODE_PREDICTOR_COMPILE",
+            str(prefix_graph_cfg.get("code_predictor_compile", "true")),
+        )
+        self._compile_enabled = self._parse_bool_config(compile_setting)
         prefix_graphs_requested = self._parse_bool_config(prefix_graph_cfg.get("code_predictor_prefix_graphs"))
         is_npu = current_omni_platform.is_npu()
         self._prefix_graphs_enabled = prefix_graphs_requested and wrapper_config.use_cuda_graphs and not is_npu
@@ -562,7 +568,7 @@ class CodePredictorWrapper(nn.Module):
         self._lm_heads_list = list(self.lm_head)
         self._codec_embeds_list = list(self.model.codec_embedding)
 
-        if not current_omni_platform.supports_torch_inductor():
+        if not self._compile_enabled or not current_omni_platform.supports_torch_inductor():
             # NPU or other platforms without Inductor support
             self._compiled_model_fwd = self.model.forward
 
