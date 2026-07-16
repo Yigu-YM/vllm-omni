@@ -154,6 +154,7 @@ class OmniINCConfig(INCConfig):
         """
         omni = object.__new__(cls)
         omni.__dict__.update(inc.__dict__)
+        omni.config_parser = type(inc.config_parser)(omni)
         return omni
 
     @classmethod

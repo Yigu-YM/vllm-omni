@@ -229,6 +229,7 @@ class TestOmniINCConfigUpgrade:
         assert isinstance(upgraded, OmniINCConfig)
         assert upgraded.weight_bits == 4
         assert upgraded.group_size == 128
+        assert upgraded.config_parser._config is upgraded
 
 
 # ===================================================================
